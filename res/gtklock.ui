@@ -1,14 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
+	<requires lib="gtk" version="4.0"/>
 	<object class="GtkBox" id="window-box">
+		<property name="visible">0</property>
 		<property name="name">window-box</property>
-		<property name="margin">100</property>
+		<property name="margin-start">100</property>
+		<property name="margin-end">100</property>
+		<property name="margin-top">100</property>
+		<property name="margin-bottom">100</property>
 		<property name="halign">center</property>
 		<property name="valign">center</property>
 		<property name="orientation">vertical</property>
 		<property name="spacing">5</property>
 		<child>
 			<object class="GtkLabel" id="clock-label">
+				<property name="visible">0</property>
 				<property name="name">clock-label</property>
 				<property name="halign">center</property>
 				<property name="margin-bottom">10</property>
@@ -16,24 +22,28 @@
 		</child>
 		<child>
 			<object class="GtkRevealer" id="body-revealer">
+				<property name="visible">0</property>
 				<property name="transition-type">none</property>
 				<property name="reveal-child">1</property>
-				<child>
+				<property name="child">
 					<object class="GtkGrid" id="body-grid">
+						<property name="visible">0</property>
 						<property name="row-spacing">5</property>
 						<property name="column-spacing">5</property>
 						<child>
 							<object class="GtkLabel" id="input-label">
+								<property name="visible">0</property>
 								<property name="name">input-label</property>
 								<property name="label">Password:</property>
+								<layout>
+									<property name="column">0</property>
+									<property name="row">0</property>
+								</layout>
 							</object>
-							<packing>
-								<property name="left-attach">0</property>
-								<property name="top-attach">0</property>
-							</packing>
 						</child>
 						<child>
 							<object class="GtkEntry" id="input-field">
+								<property name="visible">0</property>
 								<property name="name">input-field</property>
 								<property name="width-request">380</property>
 								<property name="visibility">0</property>
@@ -42,39 +52,44 @@
 								<property name="secondary-icon-name">view-reveal-symbolic</property>
 								<signal name="icon-release" handler="window_pw_toggle_vis"/>
 								<signal name="activate" handler="window_pw_check"/>
+								<layout>
+									<property name="column">1</property>
+									<property name="row">0</property>
+									<property name="column-span">2</property>
+								</layout>
 							</object>
-							<packing>
-								<property name="left-attach">1</property>
-								<property name="top-attach">0</property>
-								<property name="width">2</property>
-							</packing>
 						</child>
 						<child>
 							<object class="GtkBox" id="message-box">
+								<property name="visible">0</property>
 								<property name="no-show-all">1</property>
+								<layout>
+									<property name="column">1</property>
+									<property name="row">1</property>
+									<property name="column-span">2</property>
+								</layout>
 							</object>
-							<packing>
-								<property name="left-attach">1</property>
-								<property name="top-attach">1</property>
-								<property name="width">2</property>
-							</packing>
 						</child>
 						<child>
 							<object class="GtkBox">
+								<property name="visible">0</property>
 								<property name="halign">end</property>
 								<property name="spacing">5</property>
 								<child>
 									<object class="GtkLabel" id="warning-label">
+										<property name="visible">0</property>
 										<property name="name">warning-label</property>
 									</object>
 								</child>
 								<child>
 									<object class="GtkLabel" id="error-label">
+										<property name="visible">0</property>
 										<property name="name">error-label</property>
 									</object>
 								</child>
 								<child>
 									<object class="GtkButton" id="unlock-button">
+										<property name="visible">0</property>
 										<property name="name">unlock-button</property>
 										<property name="label">Unlock</property>
 										<style>
@@ -83,15 +98,15 @@
 										<signal name="clicked" handler="window_pw_check"/>
 									</object>
 								</child>
+								<layout>
+									<property name="column">1</property>
+									<property name="row">2</property>
+									<property name="column-span">2</property>
+								</layout>
 							</object>
-							<packing>
-								<property name="left-attach">1</property>
-								<property name="top-attach">2</property>
-								<property name="width">2</property>
-							</packing>
 						</child>
 					</object>
-				</child>
+				</property>
 			</object>
 		</child>
 	</object>
