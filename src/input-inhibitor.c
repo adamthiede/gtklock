@@ -3,7 +3,7 @@
 
 // wlr-input-inhibitor
 
-#include <gdk/gdkwayland.h>
+#include <gdk/wayland/gdkwayland.h>
 
 #include "util.h"
 #include "wlr-input-inhibitor-unstable-v1-client-protocol.h"

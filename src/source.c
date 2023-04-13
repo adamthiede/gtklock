@@ -82,6 +82,7 @@ static GOptionEntry debug_entries[] = {
 
 static pid_t parent = -2;
 
+/*
 static void reload_outputs(void) {
 	GdkDisplay *display = gdk_display_get_default();
 
@@ -125,15 +126,16 @@ static void reload_outputs(void) {
 	g_array_unref(dead_windows);
 	module_on_output_change(gtklock);
 }
+*/
 
 static void monitors_changed(GdkDisplay *display, GdkMonitor *monitor) {
-	reload_outputs();
+	//reload_outputs();
 }
 
 static gboolean setup_layer_shell(void) {
 	if(!gtklock->use_layer_shell) return FALSE;
 
-	reload_outputs();
+	//reload_outputs();
 
 	GdkDisplay *display = gdk_display_get_default();
 	g_signal_connect(display, "monitor-added", G_CALLBACK(monitors_changed), NULL);
@@ -162,20 +164,15 @@ static void shutdown(GtkApplication *app, gpointer user_data) {
 static void attach_style(const gchar *format, ...) G_GNUC_PRINTF(1, 2);
 static void attach_style(const gchar *format, ...) {
 	GtkCssProvider *provider = gtk_css_provider_new();
-	GError *err = NULL;
 	va_list args;
 	va_start(args, format);
 	char *buff = g_strdup_vprintf(format, args);
 	va_end(args);
 
-	gtk_css_provider_load_from_data(provider, buff, -1, &err);
-	if(err != NULL) {
-		g_warning("Style loading failed: %s", err->message);
-		g_error_free(err);
-	} else {
-		gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
-			GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-	}
+	// TODO: Handle parsing_error signal
+	gtk_css_provider_load_from_data(provider, buff, -1);
+	gtk_style_context_add_provider_for_display(gdk_display_get_default(),
+		GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION+1);
 
 	g_object_unref(provider);
 	g_free(buff);
@@ -183,16 +180,12 @@ static void attach_style(const gchar *format, ...) {
 
 static void attach_custom_style(const gchar *path) {
 	GtkCssProvider *provider = gtk_css_provider_new();
-	GError *err = NULL;
 
-	gtk_css_provider_load_from_path(provider, path, &err);
-	if(err != NULL) {
-		g_warning("Custom style loading failed: %s", err->message);
-		g_error_free(err);
-	} else {
-		gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
-			GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION+1);
-	}
+	// TODO: Handle parsing_error signal
+	gtk_css_provider_load_from_path(provider, path);
+	gtk_style_context_add_provider_for_display(gdk_display_get_default(),
+		GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION+1);
+
 	g_object_unref(provider);
 }
 
@@ -255,7 +248,6 @@ int main(int argc, char **argv) {
 	g_option_group_add_entries(debug_group, debug_entries);
 	g_option_context_add_group(option_context, config_group);
 	g_option_context_add_group(option_context, debug_group);
-	g_option_context_add_group(option_context, gtk_get_option_group(TRUE));
 	g_option_context_parse(option_context, &argc, &argv, NULL);
 
 	GArray *modules = g_array_new(FALSE, TRUE, sizeof(GModule *));
