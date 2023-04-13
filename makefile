@@ -4,8 +4,8 @@
 # Makefile
 
 NAME := gtklock
-MAJOR_VERSION := 2
-MINOR_VERSION := 1
+MAJOR_VERSION := 3
+MINOR_VERSION := 0
 MICRO_VERSION := 0
 
 PREFIX = /usr/local
@@ -17,7 +17,7 @@ endif
 
 INSTALL = install
 
-LIBS := wayland-client gtk+-wayland-3.0 gtk-layer-shell-0 gmodule-export-2.0
+LIBS := gtk4-layer-shell-0 gtk4-wayland gmodule-export-2.0 wayland-client
 
 PAMFLAGS := $(shell pkg-config --cflags pam)
 PAMLIBS := $(shell pkg-config --libs pam)
