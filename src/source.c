@@ -82,9 +82,9 @@ static GOptionEntry debug_entries[] = {
 
 static pid_t parent = -2;
 
-/*
 static void reload_outputs(void) {
 	GdkDisplay *display = gdk_display_get_default();
+	GListModel *monitors = gdk_display_get_monitors(display);
 
 	// Make note of all existing windows
 	GArray *dead_windows = g_array_new(FALSE, TRUE, sizeof(struct Window*));
@@ -95,8 +95,8 @@ static void reload_outputs(void) {
 
 	// Go through all monitors
 	struct Window *new = NULL;
-	for(int i = 0; i < gdk_display_get_n_monitors(display); i++) {
-		GdkMonitor *monitor = gdk_display_get_monitor(display, i);
+	for(int i = 0; i < g_list_model_get_n_items(monitors); i++) {
+		GdkMonitor *monitor = GDK_MONITOR(g_list_model_get_item(monitors, i));
 		struct Window *w = window_by_monitor(monitor);
 		if(w != NULL) {
 			// We already have this monitor, remove from dead_windows list
@@ -120,26 +120,25 @@ static void reload_outputs(void) {
 			gtklock->focused_window = NULL;
 			if(new) window_swap_focus(new, w);
 		}
-		gtk_widget_destroy(w->window);
+		gtk_window_destroy(GTK_WINDOW(w->window));
 	}
 
 	g_array_unref(dead_windows);
 	module_on_output_change(gtklock);
 }
-*/
 
-static void monitors_changed(GdkDisplay *display, GdkMonitor *monitor) {
-	//reload_outputs();
+static void monitors_changed(GListModel *self, guint position, guint removed, guint added, gpointer user_data) {
+	reload_outputs();
 }
 
 static gboolean setup_layer_shell(void) {
 	if(!gtklock->use_layer_shell) return FALSE;
 
-	//reload_outputs();
+	reload_outputs();
 
 	GdkDisplay *display = gdk_display_get_default();
-	g_signal_connect(display, "monitor-added", G_CALLBACK(monitors_changed), NULL);
-	g_signal_connect(display, "monitor-removed", G_CALLBACK(monitors_changed), NULL);
+	GListModel *monitors = gdk_display_get_monitors(display);
+	g_signal_connect(monitors, "items_changed", G_CALLBACK(monitors_changed), NULL);
 	return TRUE;
 }
 

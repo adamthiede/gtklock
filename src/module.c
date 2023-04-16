@@ -28,6 +28,9 @@
 #define STR(x) _STR(x)
 
 GModule *module_load(const char *name) {
+	return NULL;
+	// TODO: fix this
+	/*
 	if(g_module_supported() == FALSE) return NULL;
 	
 	char *path = g_path_get_basename(name);
@@ -69,6 +72,7 @@ GModule *module_load(const char *name) {
 	}
 
 	return module;
+	*/
 }
 
 void module_on_activation(struct GtkLock *gtklock) {

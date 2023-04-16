@@ -7,7 +7,7 @@
 #include <assert.h>
 
 #include <gtk/gtk.h>
-#include <gtk-layer-shell.h>
+#include <gtk4-layer-shell.h>
 
 #include "util.h"
 #include "window.h"
@@ -41,12 +41,9 @@ static gboolean window_enter_notify(GtkWidget *widget, gpointer data) {
 }
 
 static void window_setup_layer_shell(struct Window *ctx) {
-	gtk_widget_add_events(ctx->window, GDK_ENTER_NOTIFY_MASK);
-	if(ctx->enter_notify_handler > 0) {
-		g_signal_handler_disconnect(ctx->window, ctx->enter_notify_handler);
-		ctx->enter_notify_handler = 0;
-	}
-	ctx->enter_notify_handler = g_signal_connect(ctx->window, "enter-notify-event", G_CALLBACK(window_enter_notify), NULL);
+	ctx->controller_focus = gtk_event_controller_focus_new();
+	gtk_widget_add_controller(ctx->window, ctx->controller_focus);
+	g_signal_connect(ctx->controller_focus, "enter", G_CALLBACK(window_enter_notify), NULL);
 
 	gtk_layer_init_for_window(GTK_WINDOW(ctx->window));
 	gtk_layer_set_layer(GTK_WINDOW(ctx->window), GTK_LAYER_SHELL_LAYER_OVERLAY);
@@ -63,8 +60,10 @@ void window_update_clock(struct Window *ctx) {
 	gtk_label_set_text(GTK_LABEL(ctx->clock_label), gtklock->time);
 }
 
-static void window_setup_messages(struct Window *ctx);
+//static void window_setup_messages(struct Window *ctx);
 
+// TODO: fix this
+/*
 static void window_close_message(GtkInfoBar *bar, gint response, gpointer data) {
 	struct Window *ctx = window_by_widget(gtk_widget_get_toplevel(GTK_WIDGET(bar)));
 	gtk_widget_destroy(GTK_WIDGET(bar));
@@ -124,13 +123,14 @@ static void window_setup_messages(struct Window *ctx) {
 		gtk_widget_show(ctx->message_box);
 	}
 }
+*/
 
 static void window_set_busy(struct Window *ctx, gboolean busy) {
 	if(busy) g_application_mark_busy(G_APPLICATION(gtklock->app));
 	else g_application_unmark_busy(G_APPLICATION(gtklock->app));
 
-	GdkCursor *cursor = gdk_cursor_new_from_name(gtk_widget_get_display(ctx->window), busy ? "wait" : "default");
-	gdk_window_set_cursor(gtk_widget_get_window(ctx->window), cursor);
+	GdkCursor *cursor = gdk_cursor_new_from_name(busy ? "wait" : "default", NULL);
+	gtk_widget_set_cursor(ctx->window, cursor);
 	g_object_unref(cursor);
 
 	gtk_widget_set_sensitive(ctx->unlock_button, !busy);
@@ -140,20 +140,22 @@ static void window_set_busy(struct Window *ctx, gboolean busy) {
 static gboolean window_pw_failure(gpointer data) {
 	struct Window *ctx = data;
 	window_set_busy(ctx, FALSE);
-	gtk_entry_set_text(GTK_ENTRY(ctx->input_field), "");
+	GtkEntryBuffer *buffer = gtk_entry_get_buffer(GTK_ENTRY(ctx->input_field));
+	gtk_entry_buffer_delete_text(buffer, 0, -1);
 	gtk_entry_grab_focus_without_selecting(GTK_ENTRY(ctx->input_field));
 	gtk_label_set_text(GTK_LABEL(ctx->error_label), "Login failed");
 	return G_SOURCE_REMOVE;
 }
 
 static gboolean window_pw_message(gpointer data) {
-	window_setup_messages((struct Window *)data);
+	//window_setup_messages((struct Window *)data);
 	return G_SOURCE_REMOVE;
 }
 
 static gpointer window_pw_wait(gpointer data) {
 	struct Window *ctx = data;
-	const char *password = gtk_entry_get_text((GtkEntry*)ctx->input_field);
+	GtkEntryBuffer *buffer = gtk_entry_get_buffer(GTK_ENTRY(ctx->input_field));
+	const char *password = gtk_entry_buffer_get_text(buffer);
 	while(TRUE) {
 		enum pwcheck ret = auth_pw_check(password);
 		switch(ret) {
@@ -206,7 +208,8 @@ void window_pw_toggle_vis(GtkEntry* entry, GtkEntryIconPosition icon_pos) {
 static void window_destroy_notify(GtkWidget *widget, gpointer data) {
 	struct Window *win = window_by_widget(widget);
 	module_on_window_destroy(gtklock, win);
-	gtk_widget_destroy(widget);
+	// TODO: check this
+	g_object_unref(widget);
 	gtklock_remove_window(gtklock, win);
 }
 
@@ -234,8 +237,11 @@ void window_swap_focus(struct Window *win, struct Window *old) {
 			g_object_get(GTK_ENTRY(old->input_field), "cursor-position", &cursor_pos, NULL);
 
 			// Move content
-			gtk_entry_set_text(GTK_ENTRY(win->input_field), gtk_entry_get_text(GTK_ENTRY(old->input_field)));
-			gtk_entry_set_text(GTK_ENTRY(old->input_field), "");
+			GtkEntryBuffer *buffer_win = gtk_entry_get_buffer(GTK_ENTRY(win->input_field));
+			GtkEntryBuffer *buffer_old = gtk_entry_get_buffer(GTK_ENTRY(old->input_field));
+			gtk_entry_set_buffer(GTK_ENTRY(win->input_field), buffer_old);
+			gtk_entry_set_buffer(GTK_ENTRY(old->input_field), buffer_win);
+			gtk_entry_buffer_delete_text(buffer_win, 0, -1);
 
 			// Update new cursor position
 			g_signal_emit_by_name(GTK_ENTRY(win->input_field), "move-cursor", GTK_MOVEMENT_BUFFER_ENDS, -1, FALSE);
@@ -262,6 +268,8 @@ void window_idle_show(struct Window *ctx) {
 	}
 }
 
+// TODO: fix this
+/*
 static gboolean window_idle_key(GtkWidget *self, GdkEventKey event, gpointer user_data) {
 	gtklock_idle_show(gtklock);
 	return FALSE;
@@ -270,12 +278,13 @@ static gboolean window_idle_motion(GtkWidget *self, GdkEventMotion event, gpoint
 	gtklock_idle_show(gtklock);
 	return FALSE;
 }
+*/
 
-void window_caps_state_changed(GdkKeymap *self, gpointer user_data) {
+void window_caps_state_changed(GObject *self, GParamSpec *pspec, gpointer user_data) {
 	struct Window *w = gtklock->focused_window;
 	if(!w || !w->warning_label) return;
 
-	if(gdk_keymap_get_caps_lock_state(self)) gtk_label_set_text(GTK_LABEL(w->warning_label), "Caps Lock is on");
+	if(gdk_device_get_caps_lock_state(GDK_DEVICE(self))) gtk_label_set_text(GTK_LABEL(w->warning_label), "Caps Lock is on");
 	else gtk_label_set_text(GTK_LABEL(w->warning_label), "");
 }
 
@@ -290,28 +299,19 @@ struct Window *create_window(GdkMonitor *monitor) {
 	w->window = gtk_application_window_new(gtklock->app);
 
 	g_signal_connect(w->window, "destroy", G_CALLBACK(window_destroy_notify), NULL);
+	// TODO: fix this
+	/*
 	if(gtklock->use_idle_hide || gtklock->hidden) {
 		g_signal_connect(w->window, "key-press-event", G_CALLBACK(window_idle_key), NULL);
 		g_signal_connect(w->window, "motion-notify-event", G_CALLBACK(window_idle_motion), NULL);
 	}
+	*/
 
 	GdkDisplay *display = gtk_widget_get_display(w->window);
+	const gchar *name = gdk_monitor_get_connector(monitor);
 
-	/*
-		This code uses a deprecated function and assumes one GDK screen...
-		However there isn't really a good way to do this in GTK3 currently.
-		Related issue: https://gitlab.gnome.org/GNOME/gtk/-/issues/4982
-	*/
-	char *name = NULL;
-	GdkScreen *screen = gtk_widget_get_screen(w->window);
-	for(int i = 0; i < gdk_display_get_n_monitors(display); i++) {
-		GdkMonitor *monitor = gdk_display_get_monitor(display, i);
-		if(monitor != w->monitor) continue;
-		name = gdk_screen_get_monitor_plug_name(screen, i);
-	}
-
-	GdkKeymap *keymap = gdk_keymap_get_for_display(display);
-	g_signal_connect(keymap, "state-changed", G_CALLBACK(window_caps_state_changed), NULL);
+	GdkDevice *device = gdk_seat_get_keyboard(gdk_display_get_default_seat(display));
+	g_signal_connect(device, "notify::caps-lock-state", G_CALLBACK(window_caps_state_changed), NULL);
 
 	if(name) gtk_widget_set_name(w->window, name);
 	gtk_window_set_title(GTK_WINDOW(w->window), "Lockscreen");
@@ -320,13 +320,12 @@ struct Window *create_window(GdkMonitor *monitor) {
 	if(gtklock->use_layer_shell) window_setup_layer_shell(w);
 
 	w->overlay = gtk_overlay_new();
-	gtk_container_add(GTK_CONTAINER(w->window), w->overlay);
+	gtk_window_set_child(GTK_WINDOW(w->window), w->overlay);
 	
 	GtkBuilder *builder = gtk_builder_new_from_resource("/gtklock/gtklock.ui");
-	gtk_builder_connect_signals(builder, w);
 
 	w->window_box = GTK_WIDGET(gtk_builder_get_object(builder, "window-box"));
-	gtk_container_add(GTK_CONTAINER(w->overlay), w->window_box);
+	gtk_overlay_set_child(GTK_OVERLAY(w->overlay), w->window_box);
 
 	w->body_revealer = GTK_WIDGET(gtk_builder_get_object(builder, "body-revealer"));
 	w->body_grid = GTK_WIDGET(gtk_builder_get_object(builder, "body-grid"));
@@ -342,9 +341,10 @@ struct Window *create_window(GdkMonitor *monitor) {
 	w->clock_label = GTK_WIDGET(gtk_builder_get_object(builder, "clock-label"));
 	window_update_clock(w);
 
-	if(gtklock->hidden) window_idle_hide(w);
+	// TODO: fix this
+	//if(gtklock->hidden) window_idle_hide(w);
 	module_on_window_create(gtklock, w);
-	gtk_widget_show_all(w->window);
+	gtk_widget_show(w->window);
 
 	g_object_unref(builder);
 	return w;
