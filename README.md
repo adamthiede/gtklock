@@ -12,7 +12,7 @@ Works on sway and other wlroots-based compositors.
 Available on these repositories:
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/gtklock.svg)](https://repology.org/project/gtklock/versions)
-### Installing gtklock
+## Installing gtklock
 - Arch: `# yay -S gtklock` (using [Yay](https://github.com/Jguer/yay))
 - Gentoo: `# emerge --ask gui-apps/gtklock` (in [GURU repository](https://wiki.gentoo.org/wiki/Project:GURU))
 - Void: `# xbps-install gtklock`
