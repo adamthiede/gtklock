@@ -15,6 +15,7 @@ gtklock is available on these repositories:
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/gtklock.svg)](https://repology.org/project/gtklock/versions)
 
+- Alpine: `# apk add gtklock` (in [Testing repository](https://wiki.alpinelinux.org/wiki/Repositories#Testing))
 - Arch: `# pacman -S gtklock`
 - Gentoo: `# emerge --ask gui-apps/gtklock` (in [GURU repository](https://wiki.gentoo.org/wiki/Project:GURU))
 - Void: `# xbps-install gtklock`
